@@ -144,6 +144,8 @@ button { font-family: inherit; cursor: pointer; }
     display: flex;
     align-items: center;
     gap: 10px;
+    position: relative;
+    z-index: 2; /* 始终高于折叠下拉卡片，避免登录按钮被遮挡 */
 }
 
 .icon-btn {
@@ -781,6 +783,17 @@ button { font-family: inherit; cursor: pointer; }
         gap: 2px;
         transform: translateY(-110%);
         transition: transform 0.35s var(--ease);
+        z-index: 1; /* 下拉卡片仅覆盖页面内容，不遮挡导航栏内的登录按钮 */
+        border-top: 1px solid var(--border);
+    }
+
+    .nav-inner { gap: 12px; }
+
+    .brand-name {
+        max-width: 88px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .nav-links.open {

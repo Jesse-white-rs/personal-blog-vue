@@ -3,7 +3,7 @@
     <div class="container nav-inner">
       <a class="brand" href="#top">
         <span class="brand-mark">{{ initials }}</span>
-        {{ profile?.name || 'RWG' }}
+        <span class="brand-name">{{ profile?.name || 'RWG' }}</span>
       </a>
 
       <ul class="nav-links" ref="linksEl" :class="{ open: menuOpen }" @click="onLinkClick">
