@@ -30,6 +30,12 @@ create table if not exists posts (
   updated_at timestamptz default now()
 );
 
+-- 兼容已存在旧表：补齐后台管理所需字段（重复执行安全）
+alter table posts add column if not exists status text not null default 'published';
+alter table posts add column if not exists cover_url text;
+alter table posts add column if not exists tags text[] default '{}';
+alter table posts add column if not exists updated_at timestamptz default now();
+
 -- 项目
 create table if not exists projects (
   id uuid primary key default gen_random_uuid(),
