@@ -80,7 +80,8 @@ onMounted(() => {
       timer = setTimeout(tick, 46)
     } else {
       timer = setTimeout(() => {
-        typedLines.value = [...typedLines.value, c]
+        // 滑动窗口：最多保留 lines.length 行，避免终端内容无限累积撑大窗口
+        typedLines.value = [...typedLines.value, c].slice(-lines.length)
         current.value = ''
         char = 0
         line = (line + 1) % lines.length
