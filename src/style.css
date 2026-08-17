@@ -105,6 +105,8 @@ button { font-family: inherit; cursor: pointer; }
     font-weight: 600;
     font-size: 15px;
     letter-spacing: -0.3px;
+    position: relative;
+    z-index: 2; /* 与 nav-actions 同级，确保不被折叠卡片覆盖 */
 }
 
 .brand-mark {
