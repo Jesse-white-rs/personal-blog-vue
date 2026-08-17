@@ -29,9 +29,11 @@ export function useContent() {
       ])
 
       if (posts.data?.length) {
-        articles.value = posts.data.map((p) => ({
-          title: p.title, excerpt: p.excerpt, category: p.category, date: p.date
-        }))
+        articles.value = posts.data
+          .filter((p) => p.status === 'published' || p.status == null)
+          .map((p) => ({
+            title: p.title, excerpt: p.excerpt, category: p.category, date: p.date
+          }))
       }
       if (proj.data?.length) {
         projects.value = proj.data.map((p) => ({

@@ -14,6 +14,18 @@
       </ul>
 
       <div class="nav-actions">
+        <template v-if="isAdmin">
+          <button class="nav-link-btn" @click="$emit(view === 'admin' ? 'go-site' : 'go-admin')">
+            {{ view === 'admin' ? '查看站点' : '写博客' }}
+          </button>
+          <button class="nav-link-btn" @click="logout">退出</button>
+        </template>
+        <template v-else-if="user">
+          <span class="nav-user">{{ user.email }}</span>
+          <button class="nav-link-btn" @click="logout">退出</button>
+        </template>
+        <button v-else class="nav-link-btn" @click="$emit('open-login')">登录</button>
+
         <button class="icon-btn" @click="toggleTheme" :aria-label="theme === 'dark' ? '切换为亮色' : '切换为暗色'">
           <span v-if="theme === 'dark'">☀</span>
           <span v-else>☾</span>
@@ -29,8 +41,12 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useAuth } from '../composables/useAuth'
 
-const props = defineProps({ profile: Object })
+const props = defineProps({ profile: Object, view: { type: String, default: 'site' } })
+defineEmits(['open-login', 'go-admin', 'go-site'])
+
+const { user, isAdmin, logout } = useAuth()
 
 const scrolled = ref(false)
 const menuOpen = ref(false)

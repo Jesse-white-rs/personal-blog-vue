@@ -23,7 +23,11 @@ create table if not exists posts (
   date text,
   slug text,
   content text,
-  created_at timestamptz default now()
+  status text not null default 'published',   -- published | draft
+  cover_url text,
+  tags text[] default '{}',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
 );
 
 -- 项目
@@ -64,12 +68,65 @@ alter table skills    enable row level security;
 alter table tools     enable row level security;
 alter table now_items enable row level security;
 
+-- 管理员身份判断（SECURITY DEFINER 绕过 profiles 自身的 RLS，避免递归）
+create or replace function public.is_admin()
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (select 1 from profiles where id = auth.uid() and is_admin = true);
+$$;
+
+-- 认证用户档案（与 auth.users 一一对应）
+create table if not exists profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  email text,
+  is_admin boolean not null default false,
+  created_at timestamptz default now()
+);
+
+-- 新用户注册时自动建档案
+create or replace function handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.profiles (id, email) values (new.id, new.email)
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function handle_new_user();
+
+alter table profiles enable row level security;
+
+-- 公开可读：站点简介 / 已发布文章 / 项目 / 技能 / 工具 / 现在
 create policy "public read profile"   on profile   for select using (true);
-create policy "public read posts"     on posts     for select using (true);
+create policy "public read published posts" on posts for select using (status = 'published' or status is null);
 create policy "public read projects"  on projects  for select using (true);
 create policy "public read skills"    on skills    for select using (true);
 create policy "public read tools"     on tools     for select using (true);
 create policy "public read now_items" on now_items for select using (true);
+
+-- 登录用户可读自己的档案；管理员可读全部
+create policy "self or admin read profiles" on profiles
+  for select using (auth.uid() = id or public.is_admin());
+
+-- 仅管理员可写文章与档案（插入/更新/删除）
+create policy "admin manage posts"    on posts    for all
+  using (public.is_admin()) with check (public.is_admin());
+create policy "admin manage profiles" on profiles for all
+  using (public.is_admin()) with check (public.is_admin());
+
+-- 设为管理员：注册账号后，把下面邮箱替换成你自己的，执行一次即可
+-- update profiles set is_admin = true where email = 'you@example.com';
 
 -- 种子数据（首次运行后可按需修改 / 删除）
 insert into profile (id, name, tagline, bio, lead, paragraphs)
