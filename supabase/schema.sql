@@ -40,7 +40,7 @@ alter table posts add column if not exists updated_at timestamptz default now();
 create table if not exists projects (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  desc text,
+  description text,
   langs text[] default '{}',
   link text,
   created_at timestamptz default now()
@@ -74,7 +74,45 @@ alter table skills    enable row level security;
 alter table tools     enable row level security;
 alter table now_items enable row level security;
 
+-- 认证用户档案（与 auth.users 一一对应）
+create table if not exists profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  email text,
+  nickname text,
+  avatar_url text,
+  bio text,
+  is_admin boolean not null default false,
+  created_at timestamptz default now()
+);
+
+-- 兼容旧表：补齐资料字段（重复执行安全）
+alter table profiles add column if not exists nickname text;
+alter table profiles add column if not exists avatar_url text;
+alter table profiles add column if not exists bio text;
+
+-- 公开资料视图：评论等场景需要展示作者昵称/头像，
+-- 但 profiles 表受 RLS 保护（仅本人可读），故用视图暴露公开字段
+drop view if exists public_profiles;
+create view public_profiles as
+  select id, nickname, avatar_url
+  from profiles;
+grant select on public_profiles to anon, authenticated;
+
+-- 文章评论
+create table if not exists comments (
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid not null references posts(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  content text not null check (char_length(content) between 1 and 500),
+  created_at timestamptz default now()
+);
+
+create index if not exists idx_comments_post_id on comments(post_id);
+
+alter table comments enable row level security;
+
 -- 管理员身份判断（SECURITY DEFINER 绕过 profiles 自身的 RLS，避免递归）
+-- 注意：必须在 profiles 表创建之后再执行（SQL 语言函数创建时即校验表是否存在）
 create or replace function public.is_admin()
 returns boolean
 language sql
@@ -83,14 +121,6 @@ set search_path = public
 as $$
   select exists (select 1 from profiles where id = auth.uid() and is_admin = true);
 $$;
-
--- 认证用户档案（与 auth.users 一一对应）
-create table if not exists profiles (
-  id uuid primary key references auth.users(id) on delete cascade,
-  email text,
-  is_admin boolean not null default false,
-  created_at timestamptz default now()
-);
 
 -- 新用户注册时自动建档案
 create or replace function handle_new_user()
@@ -114,6 +144,12 @@ create trigger on_auth_user_created
 alter table profiles enable row level security;
 
 -- 公开可读：站点简介 / 已发布文章 / 项目 / 技能 / 工具 / 现在
+drop policy if exists "public read profile" on profile;
+drop policy if exists "public read published posts" on posts;
+drop policy if exists "public read projects" on projects;
+drop policy if exists "public read skills" on skills;
+drop policy if exists "public read tools" on tools;
+drop policy if exists "public read now_items" on now_items;
 create policy "public read profile"   on profile   for select using (true);
 create policy "public read published posts" on posts for select using (status = 'published' or status is null);
 create policy "public read projects"  on projects  for select using (true);
@@ -122,10 +158,34 @@ create policy "public read tools"     on tools     for select using (true);
 create policy "public read now_items" on now_items for select using (true);
 
 -- 登录用户可读自己的档案；管理员可读全部
+drop policy if exists "self or admin read profiles" on profiles;
 create policy "self or admin read profiles" on profiles
   for select using (auth.uid() = id or public.is_admin());
 
+-- 登录用户可更新自己的资料（昵称 / 头像 / 简介）
+drop policy if exists "self update own profile" on profiles;
+create policy "self update own profile" on profiles
+  for update using (auth.uid() = id) with check (auth.uid() = id);
+
+-- 登录用户可写入自己的档案行（注册时自动创建，触发器缺失时兜底）
+drop policy if exists "self insert own profile" on profiles;
+create policy "self insert own profile" on profiles
+  for insert with check (auth.uid() = id);
+
+-- 评论：任何人可读，登录用户可发表，只能删除自己的评论
+drop policy if exists "public read comments" on comments;
+drop policy if exists "auth insert comments" on comments;
+drop policy if exists "self delete comments" on comments;
+create policy "public read comments" on comments
+  for select using (true);
+create policy "auth insert comments" on comments
+  for insert with check (auth.uid() = user_id);
+create policy "self delete comments" on comments
+  for delete using (auth.uid() = user_id);
+
 -- 仅管理员可写文章与档案（插入/更新/删除）
+drop policy if exists "admin manage posts" on posts;
+drop policy if exists "admin manage profiles" on profiles;
 create policy "admin manage posts"    on posts    for all
   using (public.is_admin()) with check (public.is_admin());
 create policy "admin manage profiles" on profiles for all
@@ -154,7 +214,7 @@ insert into posts (title, excerpt, category, date) values
   ('写博客第三年，我换了三种工具','关于写作工具、内容组织和坚持更新的碎碎念。工具会变，记录的习惯值得保留。','随笔','2026-06-18'),
   ('Spring Boot 接口设计的几个小习惯','统一返回结构、参数校验、异常处理、文档自动化。这些习惯让接口在两年后依然好维护。','后端','2026-06-05');
 
-insert into projects (name, desc, langs, link) values
+insert into projects (name, description, langs, link) values
   ('ERP 管理系统','基于 Spring Boot + Vue 的外贸 ERP，覆盖采购、销售、财务、报表等核心业务域，支撑日常业务流转。',array['Java','Vue','MySQL','Redis'],'#projects'),
   ('数据可视化看板','轻量 BI 平台，拖拽配置图表、多数据源接入、实时大屏展示。目前是自己团队在用的内部工具。',array['TypeScript','ECharts','Node.js'],'#projects'),
   ('本站（personal-blog）','Vue 3 + Vite + Supabase 搭建的无服务器博客，推送到 GitHub 即自动部署。',array['Vue','Vite','Supabase'],'https://jesse-white-rs.github.io/personal-blog/'),

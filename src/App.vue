@@ -1,8 +1,12 @@
 <template>
-  <SiteNav :profile="profile" :view="view" @open-login="loginOpen = true" @go-admin="view = 'admin'" @go-site="view = 'site'" />
+  <SiteNav :profile="profile" :view="view"
+           @open-login="loginOpen = true"
+           @open-profile="profileOpen = true"
+           @go-admin="view = 'admin'"
+           @go-site="view = 'site'" />
   <main v-if="view === 'site'">
     <HeroSection :profile="profile" :articles="articles" :projects="projects" :skills="skills" />
-    <ArticlesSection :articles="articles" />
+    <ArticlesSection :articles="articles" @open="openArticle" />
     <AboutSection :profile="profile" :skills="skills" :tools="tools" />
     <ProjectsSection :projects="projects" />
     <NowSection :items="nowItems" />
@@ -16,6 +20,9 @@
   <SiteFooter :profile="profile" />
 
   <LoginModal :open="loginOpen" @close="loginOpen = false" />
+  <ProfileModal :open="profileOpen" @close="profileOpen = false" />
+  <ArticleModal :open="!!selectedArticle" :article="selectedArticle || {}"
+                @close="selectedArticle = null" @login="openLoginFromArticle" />
 </template>
 
 <script setup>
@@ -29,6 +36,8 @@ import NowSection from './components/NowSection.vue'
 import SiteFooter from './components/SiteFooter.vue'
 import AdminView from './components/AdminView.vue'
 import LoginModal from './components/LoginModal.vue'
+import ProfileModal from './components/ProfileModal.vue'
+import ArticleModal from './components/ArticleModal.vue'
 import { useContent } from './composables/useContent'
 import { useAuth } from './composables/useAuth'
 
@@ -37,9 +46,19 @@ const { isAdmin, init } = useAuth()
 
 const view = ref('site')
 const loginOpen = ref(false)
+const profileOpen = ref(false)
+const selectedArticle = ref(null)
+
+function openArticle(a) {
+  selectedArticle.value = a
+}
+
+function openLoginFromArticle() {
+  selectedArticle.value = null
+  loginOpen.value = true
+}
 
 function onLoggedIn() {
-  // 登录成功且为管理员时直接进入后台
   if (isAdmin.value) view.value = 'admin'
   loginOpen.value = false
 }

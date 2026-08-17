@@ -14,7 +14,7 @@
            class="project-card" v-reveal
            :target="p.link && p.link.startsWith('http') ? '_blank' : '_self'">
           <h3>{{ p.name }}</h3>
-          <p>{{ p.desc }}</p>
+          <p>{{ p.description }}</p>
           <div class="project-meta">
             <div class="project-langs">
               <span v-for="(l, i) in (p.langs || [])" :key="i">{{ l }}</span>

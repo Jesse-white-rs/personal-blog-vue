@@ -16,7 +16,9 @@
       </div>
 
       <div class="article-list">
-        <article v-for="a in filtered" :key="a.title" class="article-item" v-reveal>
+        <article v-for="a in filtered" :key="a.id || a.title" class="article-item"
+                 v-reveal role="button" tabindex="0" @click="$emit('open', a)"
+                 @keydown.enter="$emit('open', a)">
           <time class="article-date">{{ a.date }}</time>
           <div class="article-main">
             <h3>{{ a.title }}</h3>
@@ -34,6 +36,7 @@
 import { ref, computed } from 'vue'
 
 const props = defineProps({ articles: Array })
+defineEmits(['open'])
 
 const active = ref('all')
 const categories = computed(() => ['all', ...new Set(props.articles.map((a) => a.category))])

@@ -18,13 +18,18 @@
           <button class="nav-link-btn" @click="$emit(view === 'admin' ? 'go-site' : 'go-admin')">
             {{ view === 'admin' ? '查看站点' : '写博客' }}
           </button>
-          <button class="nav-link-btn" @click="logout">退出</button>
+          <button class="nav-link-btn" @click="openProfile">个人资料</button>
         </template>
         <template v-else-if="user">
-          <span class="nav-user">{{ user.email }}</span>
-          <button class="nav-link-btn" @click="logout">退出</button>
+          <button class="nav-user-btn" @click="openProfile">
+            <span class="avatar avatar-xs">
+              <img v-if="myAvatar" :src="myAvatar" :alt="myName" referrerpolicy="no-referrer" />
+              <span v-else>{{ myInitial }}</span>
+            </span>
+            <span class="nav-user-name">{{ myName }}</span>
+          </button>
         </template>
-        <button v-else class="nav-link-btn" @click="$emit('open-login')">登录</button>
+        <button v-else class="nav-link-btn nav-login" @click="$emit('open-login')">登录</button>
 
         <button class="icon-btn" @click="toggleTheme" :aria-label="theme === 'dark' ? '切换为亮色' : '切换为暗色'">
           <span v-if="theme === 'dark'">☀</span>
@@ -40,13 +45,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAuth } from '../composables/useAuth'
 
 const props = defineProps({ profile: Object, view: { type: String, default: 'site' } })
-defineEmits(['open-login', 'go-admin', 'go-site'])
+const emit = defineEmits(['open-login', 'open-profile', 'go-admin', 'go-site'])
 
-const { user, isAdmin, logout } = useAuth()
+const { user, profile: myProfile, isAdmin } = useAuth()
 
 const scrolled = ref(false)
 const menuOpen = ref(false)
@@ -54,6 +59,14 @@ const theme = ref('light')
 const linksEl = ref(null)
 
 const initials = (props.profile?.name || 'RW').slice(0, 2).toUpperCase()
+
+const myName = computed(() => myProfile.value?.nickname || myProfile.value?.email || '我')
+const myInitial = computed(() => (myName.value || '我').charAt(0).toUpperCase())
+const myAvatar = computed(() => myProfile.value?.avatar_url)
+
+function openProfile() {
+  emit('open-profile')
+}
 
 function onScroll() { scrolled.value = window.scrollY > 16 }
 
