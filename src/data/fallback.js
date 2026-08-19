@@ -9,6 +9,12 @@ export const profile = {
   paragraphs: [
     '过去几年，我参与过几个从零到一的系统建设，踩过不少坑，也攒下一些还算有用的经验。这个博客是我把这些东西整理出来的地方。',
     '比起追求完美的架构，我更在意一件事能不能先跑起来，再慢慢变好。写作也是一样：先写，再改。'
+  ],
+  // 首页终端窗口逐行显示的命令（后台「站点设置」可修改，保存在 Supabase profile 表）
+  terminal_lines: [
+    'git commit -m "第 24 篇文章"',
+    'cd ~/ideas && vim new-post.md',
+    'npm run build && ship it'
   ]
 }
 

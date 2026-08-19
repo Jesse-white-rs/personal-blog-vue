@@ -11,8 +11,12 @@ create table if not exists profile (
   bio text,
   lead text,
   paragraphs jsonb default '[]'::jsonb,
+  terminal_lines jsonb default '[]'::jsonb,
   updated_at timestamptz default now()
 );
+
+-- 兼容已存在旧表：补齐终端窗口内容字段（重复执行安全）
+alter table profile add column if not exists terminal_lines jsonb default '[]'::jsonb;
 
 -- 文章
 create table if not exists posts (
@@ -200,14 +204,15 @@ create policy "admin manage profile" on profile for all
 -- update profiles set is_admin = true where email = 'you@example.com';
 
 -- 种子数据（首次运行后可按需修改 / 删除）
-insert into profile (id, name, tagline, bio, lead, paragraphs)
+insert into profile (id, name, tagline, bio, lead, paragraphs, terminal_lines)
 values (
   1,
   'RWG',
   '写代码，也写生活。',
   '一个写代码的人，也记录生活里的琐碎与思考。',
   '我是一名后端工程师，平时主要和 Java、Spring Boot、数据库打交道，偶尔也写点前端。',
-  '["过去几年，我参与过几个从零到一的系统建设，踩过不少坑，也攒下一些还算有用的经验。这个博客是我把这些东西整理出来的地方。","比起追求完美的架构，我更在意一件事能不能先跑起来，再慢慢变好。写作也是一样：先写，再改。"]'::jsonb
+  '["过去几年，我参与过几个从零到一的系统建设，踩过不少坑，也攒下一些还算有用的经验。这个博客是我把这些东西整理出来的地方。","比起追求完美的架构，我更在意一件事能不能先跑起来，再慢慢变好。写作也是一样：先写，再改。"]'::jsonb,
+  '["git commit -m \\"第 24 篇文章\\"","cd ~/ideas && vim new-post.md","npm run build && ship it"]'::jsonb
 )
 on conflict (id) do nothing;
 

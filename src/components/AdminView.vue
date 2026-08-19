@@ -57,6 +57,10 @@
           <textarea v-model.trim="site.paragraphsText" rows="4"
                     placeholder="第一段内容&#10;第二段内容"></textarea>
         </label>
+        <label>终端窗口内容（每行一条，前台会逐条打字播放）
+          <textarea v-model.trim="site.terminalLinesText" rows="4"
+                    placeholder="git commit -m &quot;第 24 篇文章&quot;&#10;cd ~/ideas &amp;&amp; vim new-post.md&#10;npm run build &amp;&amp; ship it"></textarea>
+        </label>
 
         <p class="form-error" v-if="siteError">{{ siteError }}</p>
         <p class="form-ok" v-if="siteOk">{{ siteOk }}</p>
@@ -169,7 +173,7 @@ function gotoPage(n) {
 }
 
 const tab = ref('posts')
-const site = ref({ name: '', tagline: '', bio: '', lead: '', paragraphsText: '' })
+const site = ref({ name: '', tagline: '', bio: '', lead: '', paragraphsText: '', terminalLinesText: '' })
 const siteError = ref('')
 const siteOk = ref('')
 const siteSaving = ref(false)
@@ -219,7 +223,8 @@ async function loadSite() {
   if (data) {
     site.value = {
       name: data.name || '', tagline: data.tagline || '', bio: data.bio || '',
-      lead: data.lead || '', paragraphsText: (data.paragraphs || []).join('\n')
+      lead: data.lead || '', paragraphsText: (data.paragraphs || []).join('\n'),
+      terminalLinesText: (data.terminal_lines || []).join('\n')
     }
   }
 }
@@ -307,6 +312,7 @@ async function saveSite() {
     bio: site.value.bio || null,
     lead: site.value.lead || null,
     paragraphs: (site.value.paragraphsText || '').split('\n').map((s) => s.trim()).filter(Boolean),
+    terminal_lines: (site.value.terminalLinesText || '').split('\n').map((s) => s.trim()).filter(Boolean),
     updated_at: new Date().toISOString()
   }
   // 用 upsert 保证 id=1 行始终存在（update 在行不存在时影响 0 行且不报错）

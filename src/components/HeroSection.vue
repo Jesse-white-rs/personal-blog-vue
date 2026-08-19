@@ -48,7 +48,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps({
   profile: Object,
@@ -59,21 +59,36 @@ const props = defineProps({
 
 const skillsCount = computed(() => props.skills?.length || 0)
 
-const lines = [
-  '> git commit -m "第 24 篇文章"',
-  '> cd ~/ideas && vim new-post.md',
-  '> npm run build && ship it'
+const DEFAULT_LINES = [
+  'git commit -m "第 24 篇文章"',
+  'cd ~/ideas && vim new-post.md',
+  'npm run build && ship it'
 ]
+
+// 终端逐行显示的内容：优先使用后台（profile.terminal_lines）自定义，否则用默认值
+const lines = computed(() => {
+  const tl = props.profile?.terminal_lines
+  return Array.isArray(tl) && tl.length ? tl : DEFAULT_LINES
+})
 
 const typedLines = ref([])
 const current = ref('')
 let timer = null
 
-onMounted(() => {
+function stopTyping() {
+  clearTimeout(timer)
+  timer = null
+}
+
+function startTyping() {
+  stopTyping()
+  typedLines.value = []
+  current.value = ''
   let line = 0
   let char = 0
   function tick() {
-    const c = lines[line]
+    const c = lines.value[line]
+    if (c == null) { timer = setTimeout(tick, 300); return }
     if (char <= c.length) {
       current.value = c.slice(0, char)
       char++
@@ -81,16 +96,20 @@ onMounted(() => {
     } else {
       timer = setTimeout(() => {
         // 滑动窗口：最多保留 lines.length 行，避免终端内容无限累积撑大窗口
-        typedLines.value = [...typedLines.value, c].slice(-lines.length)
+        typedLines.value = [...typedLines.value, c].slice(-lines.value.length)
         current.value = ''
         char = 0
-        line = (line + 1) % lines.length
+        line = (line + 1) % lines.value.length
         timer = setTimeout(tick, 300)
       }, 2000)
     }
   }
   timer = setTimeout(tick, 800)
-})
+}
 
-onUnmounted(() => clearTimeout(timer))
+// 后台修改终端内容后（content:updated → profile 更新）自动重播动画
+watch(lines, startTyping)
+
+onMounted(startTyping)
+onUnmounted(stopTyping)
 </script>
