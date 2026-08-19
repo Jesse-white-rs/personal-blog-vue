@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { supabase } from '../lib/supabase'
 import * as fallback from '../data/fallback'
+import { useAuth } from './useAuth'
 
 // 统一内容入口：优先从 Supabase 读取，失败则用本地兜底数据。
 export function useContent() {
@@ -12,6 +13,7 @@ export function useContent() {
   const profile = ref(fallback.profile)
   const loading = ref(true)
   const source = ref('fallback') // 'supabase' | 'fallback'
+  const { user } = useAuth()
 
   async function load() {
     if (!supabase) {
@@ -41,7 +43,9 @@ export function useContent() {
             slug: p.slug,
             content: p.content,
             tags: p.tags || [],
-            cover_url: p.cover_url
+            cover_url: p.cover_url,
+            views: p.views || 0,
+            likes: p.likes || 0
           }))
       }
       if (proj.data) {
@@ -117,8 +121,46 @@ export function useContent() {
     return { error }
   }
 
+  // ---------- 阅读数 / 点赞 / 评论数 ----------
+
+  // 阅读数 +1（打开文章详情时调用，任何人可触发）
+  async function incrementViews(postId) {
+    if (!supabase || !postId) return
+    await supabase.rpc('increment_views', { post_id: postId })
+  }
+
+  // 切换点赞：登录用户调用，返回 { liked, likes }
+  async function toggleLike(postId) {
+    if (!supabase || !postId) return { error: { message: '未配置 Supabase' } }
+    const { data, error } = await supabase.rpc('toggle_like', { post_id: postId })
+    if (error) return { error }
+    const row = Array.isArray(data) ? data[0] : data
+    return { error: null, liked: !!row?.liked, likes: Number(row?.likes) || 0 }
+  }
+
+  // 查询当前用户对哪些文章点过赞
+  async function getLikedPostIds(postIds) {
+    if (!supabase || !user.value?.id || !postIds?.length) return []
+    const { data } = await supabase
+      .from('post_likes')
+      .select('post_id')
+      .in('post_id', postIds)
+      .eq('user_id', user.value.id)
+    return (data || []).map((r) => r.post_id)
+  }
+
+  // 批量获取文章评论数，返回 { post_id: count }
+  async function getCommentCounts(postIds) {
+    if (!supabase || !postIds?.length) return {}
+    const { data } = await supabase.rpc('get_comment_counts', { post_ids: postIds })
+    const map = {}
+    ;(data || []).forEach((r) => { map[r.post_id] = Number(r.total) || 0 })
+    return map
+  }
+
   return {
     articles, projects, skills, tools, nowItems, profile, loading, source, load,
-    getComments, addComment, deleteComment
+    getComments, addComment, deleteComment,
+    incrementViews, toggleLike, getLikedPostIds, getCommentCounts
   }
 }

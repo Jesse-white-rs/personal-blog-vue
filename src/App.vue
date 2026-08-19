@@ -27,7 +27,8 @@
   <LoginModal :open="loginOpen" @close="loginOpen = false" />
   <ProfileModal :open="profileOpen" @close="profileOpen = false" />
   <ArticleModal :open="!!selectedArticle" :article="selectedArticle || {}"
-                @close="selectedArticle = null" @login="openLoginFromArticle" />
+                @close="selectedArticle = null" @login="openLoginFromArticle"
+                @viewed="onArticleViewed" @like-changed="onArticleLiked" />
 </template>
 
 <script setup>
@@ -70,6 +71,20 @@ function openArticle(a) {
 function openLoginFromArticle() {
   selectedArticle.value = null
   loginOpen.value = true
+}
+
+// 文章详情打开后阅读数 +1（同步到列表数据，无需重新拉取）
+function onArticleViewed() {
+  if (selectedArticle.value) {
+    selectedArticle.value.views = (selectedArticle.value.views || 0) + 1
+  }
+}
+
+// 点赞数变化（同步到列表数据）
+function onArticleLiked(likes) {
+  if (selectedArticle.value) {
+    selectedArticle.value.likes = likes
+  }
 }
 
 function onLoggedIn() {

@@ -39,6 +39,8 @@ alter table posts add column if not exists status text not null default 'publish
 alter table posts add column if not exists cover_url text;
 alter table posts add column if not exists tags text[] default '{}';
 alter table posts add column if not exists updated_at timestamptz default now();
+alter table posts add column if not exists views int not null default 0;
+alter table posts add column if not exists likes int not null default 0;
 
 -- 项目
 create table if not exists projects (
@@ -186,6 +188,85 @@ create policy "auth insert comments" on comments
   for insert with check (auth.uid() = user_id);
 create policy "self delete comments" on comments
   for delete using (auth.uid() = user_id);
+
+-- 点赞记录：复合主键保证同一用户对同一文章只能点一次
+create table if not exists post_likes (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  post_id uuid not null references posts(id) on delete cascade,
+  created_at timestamptz default now(),
+  primary key (user_id, post_id)
+);
+
+create index if not exists idx_post_likes_post_id on post_likes(post_id);
+
+alter table post_likes enable row level security;
+
+-- 公开可读（用于前端判断"我是否赞过"）
+drop policy if exists "public read post_likes" on post_likes;
+create policy "public read post_likes" on post_likes
+  for select using (true);
+
+-- 阅读数 +1：任何人可调用（打开文章详情时触发）
+create or replace function public.increment_views(post_id uuid)
+returns void
+language sql
+security definer
+set search_path = public
+set row_security = off
+as $$
+  update posts set views = views + 1 where id = post_id;
+$$;
+
+grant execute on function public.increment_views(uuid) to anon, authenticated;
+
+-- 切换点赞：登录用户调用，返回 (liked 是否已赞, likes 最新点赞数)
+create or replace function public.toggle_like(post_id uuid)
+returns table (liked boolean, likes bigint)
+language plpgsql
+security definer
+set search_path = public
+set row_security = off
+as $$
+declare
+  uid uuid := auth.uid();
+  now_liked boolean;
+begin
+  if uid is null then
+    return query select false::boolean, 0::bigint;
+    return;
+  end if;
+
+  if exists (select 1 from post_likes where user_id = uid and post_id = toggle_like.post_id) then
+    delete from post_likes where user_id = uid and post_id = toggle_like.post_id;
+    update posts set likes = greatest(likes - 1, 0) where id = toggle_like.post_id;
+    now_liked := false;
+  else
+    insert into post_likes (user_id, post_id) values (uid, toggle_like.post_id)
+    on conflict do nothing;
+    update posts set likes = likes + 1 where id = toggle_like.post_id;
+    now_liked := true;
+  end if;
+
+  return query select now_liked, (select likes from posts where id = toggle_like.post_id);
+end;
+$$;
+
+grant execute on function public.toggle_like(uuid) to authenticated;
+
+-- 批量统计评论数：首页文章列表显示"评论数"用
+create or replace function public.get_comment_counts(post_ids uuid[])
+returns table (post_id uuid, total bigint)
+language sql
+security definer
+set search_path = public
+as $$
+  select c.post_id, count(*)::bigint as total
+  from comments c
+  where c.post_id = any(post_ids)
+  group by c.post_id;
+$$;
+
+grant execute on function public.get_comment_counts(uuid[]) to anon, authenticated;
 
 -- 仅管理员可写文章与档案（插入/更新/删除）
 drop policy if exists "admin manage posts" on posts;

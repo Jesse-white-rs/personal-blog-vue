@@ -433,14 +433,58 @@ button { font-family: inherit; cursor: pointer; }
 
 .article-item {
     display: grid;
-    grid-template-columns: 110px 1fr 110px;
+    grid-template-columns: 148px 1fr;
     gap: 24px;
-    align-items: baseline;
+    align-items: center;
     padding: 28px 8px;
     border-bottom: 1px solid var(--border);
     transition: background 0.2s var(--ease);
     position: relative;
 }
+
+/* 封面缩略图 */
+.article-cover {
+    aspect-ratio: 16 / 10;
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--surface-hover);
+    position: relative;
+}
+.article-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.45s var(--ease);
+}
+.article-item:hover .article-cover img { transform: scale(1.05); }
+.article-item.no-cover .article-main { grid-column: 1 / -1; }
+
+/* 日期 + 分类 */
+.article-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+/* 阅读 / 评论 / 点赞 */
+.article-stats {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin-top: 12px;
+}
+.article-stats .stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-muted);
+    transition: color 0.2s var(--ease);
+}
+.article-item:hover .stat { color: var(--text-secondary); }
 
 .article-item::before {
     content: '';
@@ -486,7 +530,6 @@ button { font-family: inherit; cursor: pointer; }
 }
 
 .article-tag {
-    justify-self: end;
     padding: 3px 12px;
     border-radius: 999px;
     font-size: 12px;
@@ -779,13 +822,8 @@ button { font-family: inherit; cursor: pointer; }
     .project-grid { grid-template-columns: 1fr; }
 
     .article-item {
-        grid-template-columns: 90px 1fr;
-    }
-
-    .article-tag {
-        justify-self: start;
-        grid-column: 2;
-        margin-top: -8px;
+        grid-template-columns: 120px 1fr;
+        gap: 18px;
     }
 }
 
@@ -863,6 +901,16 @@ button { font-family: inherit; cursor: pointer; }
     .section-title { font-size: 30px; }
 
     .tool-list { grid-template-columns: 1fr; }
+
+    /* 移动端文章卡片：封面整行置顶 */
+    .article-item {
+        grid-template-columns: 1fr;
+        gap: 14px;
+        padding: 22px 8px;
+    }
+    .article-item.no-cover .article-main { grid-column: auto; }
+    .article-cover { max-width: 100%; }
+    .article-stats { gap: 14px; }
 
     .footer-inner { justify-content: center; text-align: center; }
 
@@ -1569,13 +1617,73 @@ button { font-family: inherit; cursor: pointer; }
 
 .article { padding-bottom: 28px; border-bottom: 1px solid var(--border); }
 
+/* 详情封面大图 */
+.article-cover-lg {
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 20px;
+    background: var(--surface-hover);
+}
+.article-cover-lg img {
+    width: 100%;
+    max-height: 320px;
+    object-fit: cover;
+    display: block;
+}
+
+/* 头部：meta + 点赞按钮 */
+.article-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
 .article-meta {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 12px;
     margin-bottom: 14px;
     font-size: 13px;
     color: var(--text-muted);
+}
+
+.article-meta .stat-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--font-mono);
+}
+
+/* 点赞按钮 */
+.like-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    padding: 7px 14px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 500;
+    font-family: var(--font-mono);
+    cursor: pointer;
+    transition: border-color 0.2s var(--ease), color 0.2s var(--ease), background 0.2s var(--ease), box-shadow 0.2s var(--ease);
+}
+.like-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 4px 14px -6px var(--accent);
+}
+.like-btn:disabled { opacity: 0.6; cursor: default; }
+.like-btn.liked {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
 }
 
 .article-title {
