@@ -3,7 +3,7 @@
     <div class="container">
       <div class="admin-head">
         <h2>写博客 · 后台</h2>
-        <button class="btn" v-if="tab === 'posts'" @click="resetForm">+ 新建文章</button>
+        <button class="btn" v-if="tab === 'posts'" @click="openCreate">+ 新建文章</button>
       </div>
 
       <p class="admin-hint" v-if="!supabase">未配置 Supabase，后台不可用（请检查 .env 中的 VITE_SUPABASE_*）。</p>
@@ -30,54 +30,6 @@
           </div>
         </div>
         <p v-else-if="!loading" class="empty">还没有文章，点右上角“新建文章”。</p>
-
-        <!-- 编辑表单 -->
-        <form class="post-form" @submit.prevent="save" v-if="supabase">
-          <h3>{{ editingId ? '编辑文章' : '新建文章' }}</h3>
-
-          <div class="grid-2">
-            <label>标题
-              <input v-model.trim="form.title" required placeholder="文章标题" />
-            </label>
-            <label>分类
-              <input v-model.trim="form.category" placeholder="前端 / 后端 / 随笔" />
-            </label>
-            <label>日期
-              <input v-model.trim="form.date" placeholder="2026-08-17" />
-            </label>
-            <label>状态
-              <select v-model="form.status">
-                <option value="published">已发布</option>
-                <option value="draft">草稿</option>
-              </select>
-            </label>
-            <label>Slug
-              <input v-model.trim="form.slug" placeholder="url-slug（留空自动生成）" />
-            </label>
-            <label>封面图
-              <ImageUploader v-model="form.cover_url" folder="covers" label="上传封面图" />
-            </label>
-            <label class="full">标签（逗号分隔）
-              <input v-model.trim="form.tags" placeholder="Vue, 前端" />
-            </label>
-          </div>
-
-          <label>摘要
-            <textarea v-model.trim="form.excerpt" rows="2" placeholder="列表页显示的摘要"></textarea>
-          </label>
-          <label>正文（支持 Markdown，可插入图片）
-            <MarkdownEditor v-model="form.content" />
-          </label>
-
-          <p class="form-error" v-if="error">{{ error }}</p>
-
-          <div class="form-foot">
-            <button class="btn btn-primary" type="submit" :disabled="saving">
-              {{ saving ? '保存中…' : '保存' }}
-            </button>
-            <button class="btn" type="button" @click="resetForm" v-if="editingId">取消</button>
-          </div>
-        </form>
       </div>
 
       <!-- 站点设置 -->
@@ -114,6 +66,65 @@
         <p class="site-note">提示：保存后刷新前台首页即可看到更新。</p>
       </form>
     </div>
+
+    <!-- 新建 / 编辑文章弹窗 -->
+    <transition name="modal">
+      <div class="modal-mask" v-if="editorOpen && supabase" @click.self="closeEditor">
+        <div class="modal modal-wide" role="dialog" aria-modal="true" aria-label="文章编辑">
+          <button class="modal-close" @click="closeEditor" aria-label="关闭">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
+          </button>
+          <div class="modal-head">
+            <span class="modal-badge">{{ editingId ? 'EDIT POST' : 'NEW POST' }}</span>
+            <h2 class="modal-title">{{ editingId ? '编辑文章' : '新建文章' }}</h2>
+          </div>
+          <form class="post-form" @submit.prevent="save">
+            <div class="grid-2">
+              <label>标题
+                <input v-model.trim="form.title" required placeholder="文章标题" />
+              </label>
+              <label>分类
+                <input v-model.trim="form.category" placeholder="前端 / 后端 / 随笔" />
+              </label>
+              <label>日期
+                <input v-model.trim="form.date" placeholder="2026-08-17" />
+              </label>
+              <label>状态
+                <select v-model="form.status">
+                  <option value="published">已发布</option>
+                  <option value="draft">草稿</option>
+                </select>
+              </label>
+              <label>Slug
+                <input v-model.trim="form.slug" placeholder="url-slug（留空自动生成）" />
+              </label>
+              <label>封面图
+                <ImageUploader v-model="form.cover_url" folder="covers" label="上传封面图" />
+              </label>
+              <label class="full">标签（逗号分隔）
+                <input v-model.trim="form.tags" placeholder="Vue, 前端" />
+              </label>
+            </div>
+
+            <label>摘要
+              <textarea v-model.trim="form.excerpt" rows="2" placeholder="列表页显示的摘要"></textarea>
+            </label>
+            <label>正文（支持 Markdown，可插入图片）
+              <MarkdownEditor v-model="form.content" />
+            </label>
+
+            <p class="form-error" v-if="error">{{ error }}</p>
+
+            <div class="form-foot">
+              <button class="btn btn-primary" type="submit" :disabled="saving">
+                {{ saving ? '保存中…' : '保存' }}
+              </button>
+              <button class="btn" type="button" @click="closeEditor">取消</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </transition>
   </section>
 </template>
 
@@ -130,6 +141,7 @@ const loading = ref(false)
 const saving = ref(false)
 const error = ref('')
 const editingId = ref(null)
+const editorOpen = ref(false)
 
 const tab = ref('posts')
 const site = ref({ name: '', tagline: '', bio: '', lead: '', paragraphsText: '' })
@@ -173,6 +185,16 @@ function resetForm() {
   error.value = ''
 }
 
+function openCreate() {
+  resetForm()
+  editorOpen.value = true
+}
+
+function closeEditor() {
+  editorOpen.value = false
+  resetForm()
+}
+
 function edit(p) {
   editingId.value = p.id
   form.value = {
@@ -180,7 +202,7 @@ function edit(p) {
     status: p.status || 'published', slug: p.slug || '', cover_url: p.cover_url || '',
     tags: (p.tags || []).join(', '), excerpt: p.excerpt || '', content: p.content || ''
   }
-  window.scrollTo({ top: 0, behavior: 'smooth' })
+  editorOpen.value = true
 }
 
 function remove(p) {
@@ -188,7 +210,7 @@ function remove(p) {
   if (!confirm(`确定删除《${p.title || '无标题'}》？`)) return
   supabase.from('posts').delete().eq('id', p.id).then(({ error: e }) => {
     if (e) { error.value = e.message; return }
-    if (editingId.value === p.id) resetForm()
+    if (editingId.value === p.id) closeEditor()
     load()
   })
 }
@@ -217,7 +239,7 @@ async function save() {
   }
   saving.value = false
   if (res.error) { error.value = res.error.message; return }
-  resetForm()
+  closeEditor()
   load()
 }
 
