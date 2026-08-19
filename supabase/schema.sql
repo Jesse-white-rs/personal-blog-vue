@@ -191,6 +191,10 @@ create policy "self delete comments" on comments
 drop policy if exists "admin manage posts" on posts;
 drop policy if exists "admin manage profiles" on profiles;
 drop policy if exists "admin manage profile" on profile;
+drop policy if exists "admin manage projects" on projects;
+drop policy if exists "admin manage skills" on skills;
+drop policy if exists "admin manage tools" on tools;
+drop policy if exists "admin manage now_items" on now_items;
 create policy "admin manage posts"    on posts    for all
   using (public.is_admin()) with check (public.is_admin());
 create policy "admin manage profiles" on profiles for all
@@ -198,6 +202,15 @@ create policy "admin manage profiles" on profiles for all
 -- 注意：profile 是"站点资料"表（单行），profiles 是"用户档案"表。
 -- 站点资料必须单独授权管理员写权限，否则保存会被 RLS 静默拒绝。
 create policy "admin manage profile" on profile for all
+  using (public.is_admin()) with check (public.is_admin());
+-- 项目 / 技能 / 工具 / 现在：后台「项目管理 / 关于 / 现在」需要管理员写权限
+create policy "admin manage projects" on projects for all
+  using (public.is_admin()) with check (public.is_admin());
+create policy "admin manage skills" on skills for all
+  using (public.is_admin()) with check (public.is_admin());
+create policy "admin manage tools" on tools for all
+  using (public.is_admin()) with check (public.is_admin());
+create policy "admin manage now_items" on now_items for all
   using (public.is_admin()) with check (public.is_admin());
 
 -- 设为管理员：注册账号后，把下面邮箱替换成你自己的，执行一次即可

@@ -28,7 +28,8 @@ export function useContent() {
         supabase.from('profile').select('*').limit(1).maybeSingle()
       ])
 
-      if (posts.data?.length) {
+      // 查询成功即赋值（即使为空数组），保证后台清空内容后前台同步清空
+      if (posts.data) {
         articles.value = posts.data
           .filter((p) => p.status === 'published' || p.status == null)
           .map((p) => ({
@@ -43,14 +44,14 @@ export function useContent() {
             cover_url: p.cover_url
           }))
       }
-      if (proj.data?.length) {
+      if (proj.data) {
         projects.value = proj.data.map((p) => ({
           name: p.name, description: p.description, langs: p.langs || [], link: p.link
         }))
       }
-      if (sk.data?.length) skills.value = sk.data.map((s) => ({ name: s.name }))
-      if (tl.data?.length) tools.value = tl.data.map((t) => ({ name: t.name }))
-      if (ni.data?.length) {
+      if (sk.data) skills.value = sk.data.map((s) => ({ name: s.name }))
+      if (tl.data) tools.value = tl.data.map((t) => ({ name: t.name }))
+      if (ni.data) {
         nowItems.value = ni.data.map((n) => ({ date: n.date, text: n.text }))
       }
       if (prof.data) profile.value = prof.data
