@@ -151,6 +151,29 @@
       </div>
     </transition>
 
+    <!-- 删除确认弹窗 -->
+    <transition name="modal">
+      <div class="modal-mask confirm-mask" v-if="confirm.open" @click.self="cancelConfirm">
+        <div class="modal confirm-modal" role="alertdialog" aria-modal="true" aria-label="确认删除">
+          <div class="confirm-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 6h18" />
+              <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+              <path d="M10 11v6M14 11v6" />
+            </svg>
+          </div>
+          <h3 class="confirm-title">{{ confirm.title }}</h3>
+          <p class="confirm-text">{{ confirm.message }}<span v-if="confirm.target" class="confirm-target">「{{ confirm.target }}」</span>吗？</p>
+          <p class="confirm-note" v-if="confirm.note">{{ confirm.note }}</p>
+          <div class="confirm-actions">
+            <button class="btn confirm-cancel" ref="cancelBtn" @click="cancelConfirm">取消</button>
+            <button class="btn confirm-danger" @click="submitConfirm">确认删除</button>
+          </div>
+        </div>
+      </div>
+    </transition>
+
     <!-- 新建 / 编辑文章弹窗 -->
     <transition name="modal">
       <div class="modal-mask" v-if="editorOpen && supabase" @click.self="closeEditor">
@@ -283,7 +306,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../composables/useAuth'
 import MarkdownEditor from './MarkdownEditor.vue'
@@ -349,6 +372,36 @@ function showToast(msg, type = 'success') {
   clearTimeout(toastTimer)
   toastTimer = setTimeout(() => { toast.value = null }, 3000)
 }
+
+/* ---------- 删除确认弹窗（替代原生 confirm） ---------- */
+const confirm = ref({ open: false, title: '', message: '', target: '', note: '' })
+const cancelBtn = ref(null)
+let confirmResolver = null
+
+function askConfirm({ title, message, target = '', note = '' }) {
+  confirm.value = { open: true, title, message, target, note }
+  return new Promise((resolve) => { confirmResolver = resolve })
+}
+
+function cancelConfirm() {
+  if (!confirm.value.open) return
+  confirm.value.open = false
+  if (confirmResolver) { confirmResolver(false); confirmResolver = null }
+}
+
+function submitConfirm() {
+  if (!confirm.value.open) return
+  confirm.value.open = false
+  if (confirmResolver) { confirmResolver(true); confirmResolver = null }
+}
+
+function onKeydown(e) {
+  if (e.key === 'Escape' && confirm.value.open) cancelConfirm()
+}
+
+watch(() => confirm.value.open, (open) => {
+  if (open) nextTick(() => cancelBtn.value && cancelBtn.value.focus())
+})
 
 const empty = () => ({
   title: '', category: '', date: new Date().toISOString().slice(0, 10),
@@ -420,7 +473,18 @@ function edit(p) {
 
 function remove(p) {
   if (!supabase) return
-  if (!confirm(`确定删除《${p.title || '无标题'}》？`)) return
+  askConfirm({
+    title: '删除文章',
+    message: '确定要删除',
+    target: p.title || '无标题',
+    note: '删除后无法恢复，前台文章列表会同步移除。'
+  }).then((ok) => {
+    if (!ok) return
+    doRemove(p)
+  })
+}
+
+function doRemove(p) {
   supabase.from('posts').delete().eq('id', p.id).then(({ error: e }) => {
     if (e) { showToast(`删除失败：${e.message}`, 'error'); return }
     if (editingId.value === p.id) closeEditor()
@@ -566,7 +630,18 @@ async function saveProj() {
 
 function removeProj(p) {
   if (!supabase) return
-  if (!confirm(`确定删除项目《${p.name || '未命名'}》？`)) return
+  askConfirm({
+    title: '删除项目',
+    message: '确定要删除',
+    target: p.name || '未命名',
+    note: '删除后无法恢复，前台项目列表会同步移除。'
+  }).then((ok) => {
+    if (!ok) return
+    doRemoveProj(p)
+  })
+}
+
+function doRemoveProj(p) {
   supabase.from('projects').delete().eq('id', p.id).then(({ error: e }) => {
     if (e) { showToast(`删除失败：${e.message}`, 'error'); return }
     if (projEditingId.value === p.id) closeProjEditor()
@@ -602,7 +677,18 @@ async function addSkill() {
 
 function removeSkill(s) {
   if (!supabase) return
-  if (!confirm(`确定删除技能「${s.name}」？`)) return
+  askConfirm({
+    title: '删除技能',
+    message: '确定要删除',
+    target: s.name,
+    note: '删除后无法恢复，"关于"板块会同步移除。'
+  }).then((ok) => {
+    if (!ok) return
+    doRemoveSkill(s)
+  })
+}
+
+function doRemoveSkill(s) {
   supabase.from('skills').delete().eq('id', s.id).then(({ error: e }) => {
     if (e) { showToast(`删除失败：${e.message}`, 'error'); return }
     loadAbout()
@@ -624,7 +710,18 @@ async function addTool() {
 
 function removeTool(t) {
   if (!supabase) return
-  if (!confirm(`确定删除工具「${t.name}」？`)) return
+  askConfirm({
+    title: '删除工具',
+    message: '确定要删除',
+    target: t.name,
+    note: '删除后无法恢复，"关于"板块会同步移除。'
+  }).then((ok) => {
+    if (!ok) return
+    doRemoveTool(t)
+  })
+}
+
+function doRemoveTool(t) {
   supabase.from('tools').delete().eq('id', t.id).then(({ error: e }) => {
     if (e) { showToast(`删除失败：${e.message}`, 'error'); return }
     loadAbout()
@@ -687,7 +784,18 @@ async function saveNow() {
 
 function removeNow(n) {
   if (!supabase) return
-  if (!confirm('确定删除这条记录？')) return
+  askConfirm({
+    title: '删除记录',
+    message: '确定要删除',
+    target: n.text,
+    note: '删除后无法恢复，"现在"板块会同步移除。'
+  }).then((ok) => {
+    if (!ok) return
+    doRemoveNow(n)
+  })
+}
+
+function doRemoveNow(n) {
   supabase.from('now_items').delete().eq('id', n.id).then(({ error: e }) => {
     if (e) { showToast(`删除失败：${e.message}`, 'error'); return }
     if (nowEditingId.value === n.id) closeNowEditor()
@@ -697,5 +805,9 @@ function removeNow(n) {
   })
 }
 
-onMounted(load)
+onMounted(() => {
+  load()
+  window.addEventListener('keydown', onKeydown)
+})
+onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 </script>

@@ -1275,6 +1275,76 @@ button { font-family: inherit; cursor: pointer; }
 .modal-enter-from, .modal-leave-to { opacity: 0; }
 .modal-enter-from .modal, .modal-leave-to .modal { transform: translateY(12px) scale(0.97); opacity: 0; }
 
+/* ---------- 删除确认弹窗 ---------- */
+.confirm-mask { z-index: 2500; }
+.confirm-modal {
+    max-width: 360px;
+    padding: 32px 28px 24px;
+    text-align: center;
+}
+.confirm-icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+.confirm-title {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+}
+.confirm-text {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    word-break: break-all;
+}
+.confirm-target {
+    color: var(--text);
+    font-weight: 600;
+    padding: 0 2px;
+}
+.confirm-note {
+    margin-top: 14px;
+    padding: 9px 12px;
+    border-radius: 10px;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text-muted);
+    background: var(--surface-hover);
+}
+.confirm-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 22px;
+}
+.confirm-actions .btn {
+    flex: 1;
+    justify-content: center;
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-size: 14px;
+}
+.confirm-cancel {
+    box-shadow: 0 0 0 1px var(--border);
+}
+.confirm-cancel:hover {
+    box-shadow: 0 0 0 1px var(--border), 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+.confirm-danger {
+    background: var(--accent);
+    color: #fff;
+}
+.confirm-danger:hover {
+    box-shadow: 0 8px 24px -8px var(--accent);
+}
+
 /* ---------- 切换段 ---------- */
 .seg {
     display: flex;
