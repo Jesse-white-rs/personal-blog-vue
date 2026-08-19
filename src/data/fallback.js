@@ -2,7 +2,7 @@
 // 字段与 supabase/schema.sql 中的表结构保持一致。
 
 export const profile = {
-  name: 'RWG',
+  name: 'Jesse.se',
   tagline: '写代码，也写生活。',
   bio: '一个写代码的人，也记录生活里的琐碎与思考。',
   lead: '我是一名后端工程师，平时主要和 Java、Spring Boot、数据库打交道，偶尔也写点前端。',

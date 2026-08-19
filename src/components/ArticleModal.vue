@@ -13,7 +13,9 @@
           </div>
           <h2 class="article-title">{{ article.title }}</h2>
           <p class="article-excerpt" v-if="article.excerpt">{{ article.excerpt }}</p>
-          <div class="article-body" v-if="article.content">{{ article.content }}</div>
+          <div class="article-body" v-if="article.content">
+        <MarkdownView :source="article.content" />
+      </div>
         </article>
 
         <!-- 评论区 -->
@@ -79,6 +81,7 @@
 import { ref, computed, watch } from 'vue'
 import { useAuth } from '../composables/useAuth'
 import { useContent } from '../composables/useContent'
+import MarkdownView from './MarkdownView.vue'
 
 const props = defineProps({ open: Boolean, article: { type: Object, default: () => ({}) } })
 const emit = defineEmits(['close', 'login'])

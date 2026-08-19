@@ -231,3 +231,34 @@ insert into now_items (date, text) values
   ('阅读','在读《设计数据密集型应用》，边读边把书里的思想落到现有项目的架构思考里。'),
   ('折腾','把博客从纯静态迁到 Vue 3 + Supabase，理由只有一个：写东西不该先配置框架。'),
   ('计划','准备整理一份《从零做 ERP》系列，把三年里踩过的坑按主题归档。');
+
+-- ============================================================
+-- 媒体存储桶（头像 / 文章图片 / 封面）
+-- 说明：在 Supabase SQL Editor 中执行一次即可创建 bucket 与访问策略。
+--       桶设为 public，任何人可读；仅登录用户可上传，且只能管理自己上传的文件。
+-- ============================================================
+insert into storage.buckets (id, name, public)
+values ('media', 'media', true)
+on conflict (id) do nothing;
+
+-- 任何人可读媒体（公开访问）
+drop policy if exists "media public read" on storage.objects;
+create policy "media public read" on storage.objects
+  for select using (bucket_id = 'media');
+
+-- 登录用户可上传到 media 桶
+drop policy if exists "media auth insert" on storage.objects;
+create policy "media auth insert" on storage.objects
+  for insert to authenticated with check (bucket_id = 'media');
+
+-- 用户仅能更新 / 删除自己上传的对象（owner = 上传者的 auth.uid）
+drop policy if exists "media owner update" on storage.objects;
+create policy "media owner update" on storage.objects
+  for update to authenticated
+  using (bucket_id = 'media' and owner = auth.uid())
+  with check (bucket_id = 'media' and owner = auth.uid());
+
+drop policy if exists "media owner delete" on storage.objects;
+create policy "media owner delete" on storage.objects
+  for delete to authenticated
+  using (bucket_id = 'media' and owner = auth.uid());

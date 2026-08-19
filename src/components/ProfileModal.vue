@@ -19,7 +19,7 @@
           </div>
           <div>
             <button type="button" class="btn btn-sm" @click="pickAvatar">随机头像</button>
-            <p class="hint">支持任意图片 URL</p>
+            <p class="hint">可上传图片，或点“随机头像”用占位图</p>
           </div>
         </div>
 
@@ -31,9 +31,8 @@
           </div>
 
           <div class="field">
-            <label for="p-avatar">头像地址</label>
-            <input id="p-avatar" type="url" v-model.trim="preview.avatar_url"
-                   placeholder="https://…" />
+            <label>头像</label>
+            <ImageUploader v-model="preview.avatar_url" folder="avatars" round label="上传头像" />
           </div>
 
           <div class="field">
@@ -62,6 +61,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useAuth } from '../composables/useAuth'
+import ImageUploader from './ImageUploader.vue'
 
 const props = defineProps({ open: Boolean })
 const emit = defineEmits(['close'])
