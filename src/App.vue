@@ -3,7 +3,8 @@
            @open-login="loginOpen = true"
            @open-profile="profileOpen = true"
            @go-admin="view = 'admin'"
-           @go-site="view = 'site'" />
+           @go-site="view = 'site'"
+           @logout="onLogout" />
   <main v-if="view === 'site'">
     <HeroSection :profile="profile" :articles="articles" :projects="projects" :skills="skills" />
     <ArticlesSection :articles="articles" @open="openArticle" />
@@ -74,6 +75,11 @@ function openLoginFromArticle() {
 function onLoggedIn() {
   if (isAdmin.value) view.value = 'admin'
   loginOpen.value = false
+}
+
+// 退出登录后返回站点首页
+function onLogout() {
+  view.value = 'site'
 }
 
 // 后台保存内容（文章/站点资料）后，前台立即重新拉取

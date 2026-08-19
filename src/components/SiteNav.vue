@@ -20,6 +20,7 @@
             {{ view === 'admin' ? '查看站点' : '写博客' }}
           </button>
           <button class="nav-link-btn" @click="openProfile">个人资料</button>
+          <button class="nav-link-btn nav-logout" @click="handleLogout">退出登录</button>
         </template>
         <template v-else-if="user">
           <button class="nav-user-btn" @click="openProfile">
@@ -29,6 +30,7 @@
             </span>
             <span class="nav-user-name">{{ myName }}</span>
           </button>
+          <button class="nav-link-btn nav-logout" @click="handleLogout">退出</button>
         </template>
         <button v-else class="nav-link-btn nav-login" @click="$emit('open-login')">登录</button>
 
@@ -50,9 +52,9 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAuth } from '../composables/useAuth'
 
 const props = defineProps({ profile: Object, view: { type: String, default: 'site' } })
-const emit = defineEmits(['open-login', 'open-profile', 'go-admin', 'go-site'])
+const emit = defineEmits(['open-login', 'open-profile', 'go-admin', 'go-site', 'logout'])
 
-const { user, profile: myProfile, isAdmin } = useAuth()
+const { user, profile: myProfile, isAdmin, logout } = useAuth()
 
 const scrolled = ref(false)
 const menuOpen = ref(false)
@@ -67,6 +69,11 @@ const myAvatar = computed(() => myProfile.value?.avatar_url)
 
 function openProfile() {
   emit('open-profile')
+}
+
+async function handleLogout() {
+  await logout()
+  emit('logout')
 }
 
 function onScroll() {
