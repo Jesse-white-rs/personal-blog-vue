@@ -152,6 +152,11 @@ button { font-family: inherit; cursor: pointer; }
     background: var(--surface-hover);
 }
 
+/* 移动端折叠菜单内的登录相关操作项（桌面端隐藏） */
+.nav-menu-actions {
+    display: none;
+}
+
 .nav-actions {
     display: flex;
     align-items: center;
@@ -817,6 +822,40 @@ button { font-family: inherit; cursor: pointer; }
         padding: 12px 8px;
         font-size: 16px;
     }
+
+    /* 移动端：顶栏仅保留主题/汉堡按钮，登录后的操作收进折叠菜单 */
+    .nav-desktop-only { display: none; }
+
+    .nav-menu-actions {
+        display: block;
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid var(--border);
+    }
+
+    .nav-menu-btn {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 12px 8px;
+        background: none;
+        border: none;
+        font-size: 16px;
+        color: var(--text-secondary);
+        text-align: left;
+        cursor: pointer;
+        border-radius: 6px;
+        transition: color 0.2s var(--ease), background 0.2s var(--ease);
+    }
+
+    .nav-menu-btn:hover { color: var(--text); background: var(--surface-hover); }
+
+    .nav-menu-user { color: var(--text); font-weight: 500; }
+
+    .nav-menu-logout { color: #e0533d; }
+
+    .nav-menu-logout:hover { color: #c23a26; background: rgba(224, 83, 61, 0.08); }
 
     .nav-burger { display: block; }
 

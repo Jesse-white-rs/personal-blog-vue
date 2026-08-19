@@ -12,25 +12,46 @@
         <li><a href="#about">关于</a></li>
         <li><a href="#projects">项目</a></li>
         <li><a href="#now">现在</a></li>
+        <!-- 移动端：登录后的操作按钮收进折叠菜单，避免顶栏挤不下换行 -->
+        <li v-if="user || isAdmin" class="nav-menu-actions">
+          <template v-if="isAdmin">
+            <button class="nav-menu-btn" @click="goAdmin">
+              {{ view === 'admin' ? '查看站点' : '写博客' }}
+            </button>
+            <button class="nav-menu-btn" @click="openProfile">个人资料</button>
+            <button class="nav-menu-btn nav-menu-logout" @click="handleLogout">退出登录</button>
+          </template>
+          <template v-else>
+            <button class="nav-menu-btn nav-menu-user" @click="openProfile">
+              <span class="avatar avatar-xs">
+                <img v-if="myAvatar" :src="myAvatar" :alt="myName" referrerpolicy="no-referrer" />
+                <span v-else>{{ myInitial }}</span>
+              </span>
+              <span>{{ myName }}</span>
+            </button>
+            <button class="nav-menu-btn nav-menu-logout" @click="handleLogout">退出登录</button>
+          </template>
+        </li>
       </ul>
 
       <div class="nav-actions">
+        <!-- 桌面端操作按钮；移动端由 CSS 隐藏，收进折叠菜单 -->
         <template v-if="isAdmin">
-          <button class="nav-link-btn" @click="$emit(view === 'admin' ? 'go-site' : 'go-admin')">
+          <button class="nav-link-btn nav-desktop-only" @click="$emit(view === 'admin' ? 'go-site' : 'go-admin')">
             {{ view === 'admin' ? '查看站点' : '写博客' }}
           </button>
-          <button class="nav-link-btn" @click="openProfile">个人资料</button>
-          <button class="nav-link-btn nav-logout" @click="handleLogout">退出登录</button>
+          <button class="nav-link-btn nav-desktop-only" @click="openProfile">个人资料</button>
+          <button class="nav-link-btn nav-logout nav-desktop-only" @click="handleLogout">退出登录</button>
         </template>
         <template v-else-if="user">
-          <button class="nav-user-btn" @click="openProfile">
+          <button class="nav-user-btn nav-desktop-only" @click="openProfile">
             <span class="avatar avatar-xs">
               <img v-if="myAvatar" :src="myAvatar" :alt="myName" referrerpolicy="no-referrer" />
               <span v-else>{{ myInitial }}</span>
             </span>
             <span class="nav-user-name">{{ myName }}</span>
           </button>
-          <button class="nav-link-btn nav-logout" @click="handleLogout">退出</button>
+          <button class="nav-link-btn nav-logout nav-desktop-only" @click="handleLogout">退出</button>
         </template>
         <button v-else class="nav-link-btn nav-login" @click="$emit('open-login')">登录</button>
 
@@ -67,11 +88,18 @@ const myName = computed(() => myProfile.value?.nickname || myProfile.value?.emai
 const myInitial = computed(() => (myName.value || '我').charAt(0).toUpperCase())
 const myAvatar = computed(() => myProfile.value?.avatar_url)
 
+function goAdmin() {
+  emit(props.view === 'admin' ? 'go-site' : 'go-admin')
+  closeMenu()
+}
+
 function openProfile() {
   emit('open-profile')
+  closeMenu()
 }
 
 async function handleLogout() {
+  closeMenu()
   await logout()
   emit('logout')
 }
