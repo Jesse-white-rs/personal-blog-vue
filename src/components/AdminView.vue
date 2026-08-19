@@ -30,6 +30,8 @@
           </div>
         </div>
         <p v-else-if="!loading" class="empty">还没有文章，点右上角“新建文章”。</p>
+
+        <Pagination :page="page" :total="total" :per-page="perPage" @change="gotoPage" />
       </div>
 
       <!-- 站点设置 -->
@@ -139,11 +141,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../composables/useAuth'
 import MarkdownEditor from './MarkdownEditor.vue'
 import ImageUploader from './ImageUploader.vue'
+import Pagination from './Pagination.vue'
 
 const { isAdmin } = useAuth()
 const posts = ref([])
@@ -152,6 +155,18 @@ const saving = ref(false)
 const error = ref('')
 const editingId = ref(null)
 const editorOpen = ref(false)
+
+/* ---------- 文章列表分页 ---------- */
+const page = ref(1)
+const perPage = 8
+const total = ref(0)
+const totalPages = computed(() => Math.max(1, Math.ceil(total.value / perPage)))
+
+function gotoPage(n) {
+  if (n === page.value || n < 1 || n > totalPages.value) return
+  page.value = n
+  load()
+}
 
 const tab = ref('posts')
 const site = ref({ name: '', tagline: '', bio: '', lead: '', paragraphsText: '' })
@@ -182,11 +197,17 @@ function slugify(s) {
 async function load() {
   if (!supabase) return
   loading.value = true
-  const { data, error: e } = await supabase
-    .from('posts').select('*').order('date', { ascending: false })
+  const from = (page.value - 1) * perPage
+  const to = from + perPage - 1
+  const { data, count, error: e } = await supabase
+    .from('posts')
+    .select('*', { count: 'exact' })
+    .order('date', { ascending: false })
+    .range(from, to)
   loading.value = false
   if (e) { error.value = e.message; return }
   posts.value = data || []
+  total.value = count ?? 0
 }
 
 async function loadSite() {
@@ -235,6 +256,8 @@ function remove(p) {
   supabase.from('posts').delete().eq('id', p.id).then(({ error: e }) => {
     if (e) { showToast(`删除失败：${e.message}`, 'error'); return }
     if (editingId.value === p.id) closeEditor()
+    // 当前页删空时回退一页，避免停在空页
+    if (posts.value.length === 1 && page.value > 1) page.value -= 1
     load()
     window.dispatchEvent(new Event('content:updated'))
     showToast(`已删除《${p.title || '无标题'}》`)
@@ -267,6 +290,8 @@ async function save() {
   saving.value = false
   if (res.error) { showToast(`保存失败：${res.error.message}`, 'error'); return }
   closeEditor()
+  // 新建的文章排在最前，回到第一页以便看到
+  if (!isEdit) page.value = 1
   load()
   window.dispatchEvent(new Event('content:updated'))
   showToast(isEdit ? '文章已更新' : '文章已发布')
