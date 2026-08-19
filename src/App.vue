@@ -76,15 +76,22 @@ function onLoggedIn() {
   loginOpen.value = false
 }
 
+// 后台保存内容（文章/站点资料）后，前台立即重新拉取
+function onContentUpdated() {
+  load()
+}
+
 onMounted(() => {
   load()
   init()
   window.addEventListener('auth:logged-in', onLoggedIn)
+  window.addEventListener('content:updated', onContentUpdated)
   window.addEventListener('scroll', onScroll, { passive: true })
   onScroll()
 })
 
 onUnmounted(() => {
   window.removeEventListener('scroll', onScroll)
+  window.removeEventListener('content:updated', onContentUpdated)
 })
 </script>

@@ -57,15 +57,25 @@
         </label>
 
         <p class="form-error" v-if="siteError">{{ siteError }}</p>
+        <p class="form-ok" v-if="siteOk">{{ siteOk }}</p>
 
         <div class="form-foot">
           <button class="btn btn-primary" type="submit" :disabled="siteSaving">
             {{ siteSaving ? '保存中…' : '保存站点资料' }}
           </button>
         </div>
-        <p class="site-note">提示：保存后刷新前台首页即可看到更新。</p>
+        <p class="site-note">提示：保存后前台首页会自动刷新。</p>
       </form>
     </div>
+
+    <!-- 操作反馈 Toast -->
+    <transition name="toast">
+      <div class="toast" v-if="toast" :class="toast.type" role="status" aria-live="polite">
+        <svg v-if="toast.type === 'success'" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+        <svg v-else viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 8v5M12 16.5v.5" /></svg>
+        <span>{{ toast.msg }}</span>
+      </div>
+    </transition>
 
     <!-- 新建 / 编辑文章弹窗 -->
     <transition name="modal">
@@ -146,7 +156,17 @@ const editorOpen = ref(false)
 const tab = ref('posts')
 const site = ref({ name: '', tagline: '', bio: '', lead: '', paragraphsText: '' })
 const siteError = ref('')
+const siteOk = ref('')
 const siteSaving = ref(false)
+
+/* ---------- 全局反馈 Toast ---------- */
+const toast = ref(null)
+let toastTimer = null
+function showToast(msg, type = 'success') {
+  toast.value = { msg, type }
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => { toast.value = null }, 3000)
+}
 
 const empty = () => ({
   title: '', category: '', date: new Date().toISOString().slice(0, 10),
@@ -171,11 +191,15 @@ async function load() {
 
 async function loadSite() {
   if (!supabase) return
-  const { data, error: e } = await supabase.from('profile').select('*').eq('id', 1).single()
+  siteError.value = ''
+  siteOk.value = ''
+  const { data, error: e } = await supabase.from('profile').select('*').eq('id', 1).maybeSingle()
   if (e) { siteError.value = e.message; return }
-  site.value = {
-    name: data.name || '', tagline: data.tagline || '', bio: data.bio || '',
-    lead: data.lead || '', paragraphsText: (data.paragraphs || []).join('\n')
+  if (data) {
+    site.value = {
+      name: data.name || '', tagline: data.tagline || '', bio: data.bio || '',
+      lead: data.lead || '', paragraphsText: (data.paragraphs || []).join('\n')
+    }
   }
 }
 
@@ -209,9 +233,11 @@ function remove(p) {
   if (!supabase) return
   if (!confirm(`确定删除《${p.title || '无标题'}》？`)) return
   supabase.from('posts').delete().eq('id', p.id).then(({ error: e }) => {
-    if (e) { error.value = e.message; return }
+    if (e) { showToast(`删除失败：${e.message}`, 'error'); return }
     if (editingId.value === p.id) closeEditor()
     load()
+    window.dispatchEvent(new Event('content:updated'))
+    showToast(`已删除《${p.title || '无标题'}》`)
   })
 }
 
@@ -231,16 +257,19 @@ async function save() {
     content: form.value.content || '',
     updated_at: new Date().toISOString()
   }
+  const isEdit = Boolean(editingId.value)
   let res
-  if (editingId.value) {
+  if (isEdit) {
     res = await supabase.from('posts').update(payload).eq('id', editingId.value)
   } else {
     res = await supabase.from('posts').insert(payload)
   }
   saving.value = false
-  if (res.error) { error.value = res.error.message; return }
+  if (res.error) { showToast(`保存失败：${res.error.message}`, 'error'); return }
   closeEditor()
   load()
+  window.dispatchEvent(new Event('content:updated'))
+  showToast(isEdit ? '文章已更新' : '文章已发布')
 }
 
 async function saveSite() {
@@ -255,9 +284,22 @@ async function saveSite() {
     paragraphs: (site.value.paragraphsText || '').split('\n').map((s) => s.trim()).filter(Boolean),
     updated_at: new Date().toISOString()
   }
-  const { error: e } = await supabase.from('profile').update(payload).eq('id', 1)
+  // 用 upsert 保证 id=1 行始终存在（update 在行不存在时影响 0 行且不报错）
+  const { error: e } = await supabase
+    .from('profile')
+    .upsert({ id: 1, ...payload }, { onConflict: 'id' })
   siteSaving.value = false
-  if (e) { siteError.value = e.message; return }
+  if (e) {
+    siteError.value = e.message
+    siteOk.value = ''
+    showToast(`保存失败：${e.message}`, 'error')
+    return
+  }
+  siteError.value = ''
+  siteOk.value = '已保存，前台首页已同步更新。'
+  // 通知前台重新拉取数据，立即生效
+  window.dispatchEvent(new Event('content:updated'))
+  showToast('站点资料已保存')
 }
 
 onMounted(load)

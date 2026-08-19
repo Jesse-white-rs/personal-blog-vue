@@ -1084,6 +1084,7 @@ button { font-family: inherit; cursor: pointer; }
 }
 .form-foot { display: flex; gap: 10px; margin-top: 8px; }
 .form-error { color: var(--accent); font-size: 13px; margin: 4px 0 12px; }
+.form-ok { color: var(--success, #22c55e); font-size: 13px; margin: 4px 0 12px; }
 .empty { color: var(--text-muted); margin-bottom: 24px; }
 
 .btn.sm { padding: 6px 12px; font-size: 13px; box-shadow: 0 0 0 1px var(--border); }
@@ -1170,6 +1171,34 @@ button { font-family: inherit; cursor: pointer; }
     gap: 10px;
     margin-top: 8px;
 }
+
+/* ---------- 操作反馈 Toast ---------- */
+.toast {
+    position: fixed;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3000;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #fff;
+    background: var(--text);
+    box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.35);
+    pointer-events: none;
+}
+[data-theme="dark"] .toast { background: #fafafa; color: #111; }
+.toast svg { flex-shrink: 0; }
+.toast.success svg { color: var(--success, #22c55e); }
+.toast.error { background: var(--accent); }
+[data-theme="dark"] .toast.error { background: var(--accent); color: #fff; }
+
+.toast-enter-active, .toast-leave-active { transition: opacity 0.25s var(--ease), transform 0.25s var(--ease); }
+.toast-enter-from, .toast-leave-to { opacity: 0; transform: translateX(-50%) translateY(-10px); }
 
 /* 弹窗入场 */
 .modal-enter-active, .modal-leave-active { transition: opacity 0.25s var(--ease); }

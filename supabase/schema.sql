@@ -186,9 +186,14 @@ create policy "self delete comments" on comments
 -- 仅管理员可写文章与档案（插入/更新/删除）
 drop policy if exists "admin manage posts" on posts;
 drop policy if exists "admin manage profiles" on profiles;
+drop policy if exists "admin manage profile" on profile;
 create policy "admin manage posts"    on posts    for all
   using (public.is_admin()) with check (public.is_admin());
 create policy "admin manage profiles" on profiles for all
+  using (public.is_admin()) with check (public.is_admin());
+-- 注意：profile 是"站点资料"表（单行），profiles 是"用户档案"表。
+-- 站点资料必须单独授权管理员写权限，否则保存会被 RLS 静默拒绝。
+create policy "admin manage profile" on profile for all
   using (public.is_admin()) with check (public.is_admin());
 
 -- 设为管理员：注册账号后，把下面邮箱替换成你自己的，执行一次即可
