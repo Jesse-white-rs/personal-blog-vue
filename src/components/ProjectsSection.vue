@@ -9,9 +9,9 @@
       </div>
 
       <div class="project-grid">
-        <a v-for="p in projects" :key="p.name"
+        <a v-for="(p, i) in projects" :key="p.name"
            :href="p.link"
-           class="project-card" v-reveal
+           class="project-card" v-reveal="{ dir: 'up', delay: (i % 2) * 90 }"
            :target="p.link && p.link.startsWith('http') ? '_blank' : '_self'">
           <h3>{{ p.name }}</h3>
           <p>{{ p.description }}</p>

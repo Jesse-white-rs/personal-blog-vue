@@ -1,7 +1,7 @@
 <template>
   <header class="hero" id="top">
     <div class="container hero-grid">
-      <div class="hero-left" v-reveal>
+      <div class="hero-left">
         <h1 class="hero-title">你好，我是 <span class="accent">{{ profile.name }}</span>。</h1>
         <p class="hero-tagline">{{ profile.tagline }}</p>
         <p class="hero-bio">{{ profile.bio }}</p>
@@ -25,7 +25,7 @@
         </div>
       </div>
 
-      <div class="hero-right" v-reveal>
+      <div class="hero-right">
         <div class="terminal">
           <div class="terminal-bar">
             <span class="dot red"></span>

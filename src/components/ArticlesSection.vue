@@ -16,8 +16,8 @@
       </div>
 
       <div class="article-list">
-        <article v-for="a in filtered" :key="a.id || a.title" class="article-item"
-                 v-reveal role="button" tabindex="0" @click="$emit('open', a)"
+        <article v-for="(a, i) in filtered" :key="a.id || a.title" class="article-item"
+                 v-reveal="{ dir: 'up', delay: (i % 3) * 60 }" role="button" tabindex="0" @click="$emit('open', a)"
                  @keydown.enter="$emit('open', a)">
           <time class="article-date">{{ a.date }}</time>
           <div class="article-main">

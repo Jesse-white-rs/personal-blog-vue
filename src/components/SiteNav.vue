@@ -1,5 +1,6 @@
 <template>
   <nav class="nav" :class="{ scrolled }">
+    <div class="scroll-progress" :style="{ '--progress': progress }"></div>
     <div class="container nav-inner">
       <a class="brand" href="#top">
         <span class="brand-mark">{{ initials }}</span>
@@ -68,7 +69,12 @@ function openProfile() {
   emit('open-profile')
 }
 
-function onScroll() { scrolled.value = window.scrollY > 16 }
+function onScroll() {
+  scrolled.value = window.scrollY > 16
+  const h = document.documentElement
+  const max = h.scrollHeight - h.clientHeight
+  progress.value = max > 0 ? Math.min(window.scrollY / max, 1) : 0
+}
 
 function syncPadding() {
   if (menuOpen.value && window.innerWidth <= 640) {

@@ -1,13 +1,13 @@
 <template>
   <section class="section section-dark" id="about">
     <div class="container about-wrap">
-      <div class="about-sticky" v-reveal>
+      <div class="about-sticky" v-reveal="'left'">
         <p class="eyebrow eyebrow-light">ABOUT</p>
         <h2 class="section-title section-title-light">关于</h2>
         <p class="about-quote">"first, solve the problem. then, write the code."</p>
       </div>
 
-      <div class="about-body" v-reveal>
+      <div class="about-body" v-reveal="'right'">
         <p class="lead">{{ profile.lead }}</p>
         <p v-for="(p, i) in profile.paragraphs" :key="i">{{ p }}</p>
 

@@ -19,6 +19,10 @@
   </main>
   <SiteFooter :profile="profile" />
 
+  <button class="back-to-top" :class="{ show: showTop }" @click="scrollTop" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
+  </button>
+
   <LoginModal :open="loginOpen" @close="loginOpen = false" />
   <ProfileModal :open="profileOpen" @close="profileOpen = false" />
   <ArticleModal :open="!!selectedArticle" :article="selectedArticle || {}"
@@ -26,7 +30,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import SiteNav from './components/SiteNav.vue'
 import HeroSection from './components/HeroSection.vue'
 import ArticlesSection from './components/ArticlesSection.vue'
@@ -45,9 +49,18 @@ const { articles, projects, skills, tools, nowItems, profile, load } = useConten
 const { isAdmin, init } = useAuth()
 
 const view = ref('site')
+const showTop = ref(false)
 const loginOpen = ref(false)
 const profileOpen = ref(false)
 const selectedArticle = ref(null)
+
+function onScroll() {
+  showTop.value = window.scrollY > 480
+}
+
+function scrollTop() {
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
 
 function openArticle(a) {
   selectedArticle.value = a
@@ -67,5 +80,11 @@ onMounted(() => {
   load()
   init()
   window.addEventListener('auth:logged-in', onLoggedIn)
+  window.addEventListener('scroll', onScroll, { passive: true })
+  onScroll()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', onScroll)
 })
 </script>
